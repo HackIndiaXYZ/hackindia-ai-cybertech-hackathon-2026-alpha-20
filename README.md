@@ -1,62 +1,140 @@
-# MedTriage AI (Team Alpha 2.0, HackIndia AI & CyberTech, KIT Kanpur)
+# MedTriage AI — Team Alpha 2.0
 
-AI-assisted **triage support and documentation** prototype. FastAPI backend with text + audio symptom intake,
-a transparent rules engine, optional Groq LLM/Whisper, a synthetic patient queue (SQLite) and PDF reports.
+**HackIndia AI & CyberTech Hackathon 2026 · KIT Kanpur**
 
-> **Hackathon prototype. NOT a medical device, NOT clinically validated, NOT a diagnosis.**
-> It does not replace healthcare professionals, and no HIPAA/other compliance is claimed. Use synthetic data only.
+Hackathon team repository: [Alpha 2.0](https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-alpha-20)
+
+MedTriage AI is an AI-assisted triage support and clinical documentation prototype. It provides text and audio symptom intake, a transparent rules engine, optional Groq LLM/Whisper integration, a synthetic patient queue backed by SQLite, and PDF reports.
+
+> **Safety disclaimer:** This is a hackathon prototype, not a medical device. It is not clinically validated and does not provide a diagnosis or replace healthcare professionals. Use synthetic data only. No regulatory or healthcare privacy compliance is claimed.
+
+## Features
+
+* Text-based symptom intake and structured summaries
+* Audio transcription through the configured speech-to-text provider
+* Transparent rules-based urgency assessment
+* Optional AI-assisted summaries
+* Synthetic patient history and clinic queue
+* Downloadable PDF reports
+* Visible safety disclaimers and emergency guidance
 
 ## Architecture
+
 ```mermaid
 flowchart LR
-  FE[Frontend] -->|JSON / multipart| API[FastAPI routes]
-  API --> PIPE[triage_pipeline]
-  API -->|audio| STT[transcription_service<br/>Groq Whisper]
-  STT -->|real transcript| PIPE
-  PIPE --> RULES[triage_rules<br/>negation-aware, decides urgency]
-  PIPE -.optional.-> LLM[ai_service<br/>Groq LLM: summary, grounded symptoms, can only RAISE urgency]
-  PIPE --> DB[(SQLite: results + synthetic queue)]
-  API --> PDF[report_service<br/>ReportLab]
+  FE[React Frontend] --> API[FastAPI Backend]
+  API --> PIPE[Triage Pipeline]
+  API --> STT[Audio Transcription]
+  STT --> PIPE
+  PIPE --> RULES[Rules-Based Assessment]
+  PIPE -. Optional .-> LLM[Groq LLM]
+  PIPE --> DB[(SQLite)]
+  API --> PDF[PDF Reports]
   DB --> PDF
 ```
-Without an API key everything except audio works in a clearly labelled `rules_only` mode.
+
+Without an API key, supported text triage functions can run in rules-only mode. Audio transcription requires a configured speech-to-text provider.
+
+## Technology stack
+
+* **Frontend:** React, Vite
+* **Backend:** Python, FastAPI
+* **Storage:** SQLite
+* **AI and transcription:** Optional Groq integrations
+* **Reports:** PDF generation
+* **Testing:** pytest
 
 ## Quick start (Windows)
-```
-setup.bat          :: once - venv, pip install, npm install (never overwrites .env)
-notepad .env       :: add GROQ_API_KEY for AI + voice (optional)
-start_all.bat      :: backend http://127.0.0.1:8000  |  frontend http://127.0.0.1:5173
-```
-Manual: `py -3.12 -m venv venv`, `venv\Scripts\activate.bat`, `python -m pip install -r requirements.txt`, `python -m uvicorn app.main:app --reload`;
-then in `frontend/`: `npm install`, `npm run dev`. Swagger UI: http://127.0.0.1:8000/docs. Tests: `python -m pytest -q`.
 
-## Frontend
-React + Vite dashboard (`frontend/`): live clinic dashboard, text and voice intake (file upload or microphone), explained results (rule-based
-urgency, absent symptoms, uncertainty, AI/rules labelling), case history, synthetic clinic queue, PDF download, and a safety page.
-Set the backend address in `frontend/.env` (`VITE_API_BASE_URL`); never put API keys there.
+From the project root:
 
-## Configuration (`.env`)
-`GROQ_API_KEY` (optional; enables LLM + audio), `GROQ_MODEL` (default `openai/gpt-oss-120b`),
-`GROQ_WHISPER_MODEL` (default `whisper-large-v3-turbo`), `DEFAULT_LLM_PROVIDER`, `DEFAULT_STT_PROVIDER`,
-`AI_TIMEOUT_SECONDS`, `MAX_AUDIO_MB`, `DATABASE_PATH`, `CORS_ORIGINS`, `EMERGENCY_NUMBER_HINT`, `REPORT_FONT_PATH`.
-Model IDs were checked against Groq's docs in Oct 2026: `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` were
-**deprecated on 2026-08-16**, so the default is `openai/gpt-oss-120b`. Groq's catalog changes often; if a call fails,
-check https://console.groq.com/docs/models.
-
-## Demo (all synthetic)
-| Demo | Needs API key? |
-|---|---|
-| `GET /health` | No |
-| Text triage (rules-only) | No |
-| Text triage (AI summary) | Yes |
-| Audio triage | **Yes** (returns a clear 503 otherwise — never a fake transcript) |
-| Patient queue, PDF report | No |
-
+```bat
+setup.bat
 ```
-curl http://127.0.0.1:8000/health
-curl -X POST http://127.0.0.1:8000/api/v1/triage/text -H "Content-Type: application/json" -d "{\"symptom_description\":\"Synthetic example: cough and mild fever for 2 days\"}"
-curl -X POST http://127.0.0.1:8000/api/v1/triage/audio -F "file=@sample.wav;type=audio/wav"
-curl http://127.0.0.1:8000/api/v1/patients
-curl -o report.pdf http://127.0.0.1:8000/api/v1/reports/<request_id>/pdf
+
+Configure your local `.env` file if you want to enable optional AI and audio features. Never commit `.env` or publish API keys.
+
+Start the application:
+
+```bat
+start_all.bat
 ```
-Docs: `docs/ARCHITECTURE.md`, `API_GUIDE.md`, `AI_PIPELINE.md`, `TESTING.md` (what was really run), `DEMO_SCRIPT.md`, `SAFETY_AND_LIMITATIONS.md`, `SUBMISSION_CHECKLIST.md`.
+
+Default local addresses:
+
+* Frontend: http://127.0.0.1:5173
+* Backend: http://127.0.0.1:8000
+* API documentation: http://127.0.0.1:8000/docs
+* Health endpoint: http://127.0.0.1:8000/health
+
+### Manual setup
+
+Create and activate a Python virtual environment, install `requirements.txt`, and run the FastAPI application. In `frontend/`, install the npm dependencies and start the Vite development server.
+
+```bat
+python -m venv venv
+venv\Scripts\activate
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
+```
+
+In a second terminal:
+
+```bat
+cd frontend
+npm install
+npm run dev
+```
+
+## Configuration
+
+Optional backend settings are documented in `.env.example`. These may include the AI provider key, model identifiers, transcription provider, timeout settings, database path, CORS origins, and report settings.
+
+Keep actual credentials in `.env` locally. Never place API keys in frontend variables or source code.
+
+## Demo scenarios
+
+Use fictional or synthetic examples only.
+
+| Scenario                | External API key                              |
+| ----------------------- | --------------------------------------------- |
+| Health endpoint         | Not required                                  |
+| Rules-only text triage  | Not required                                  |
+| AI-assisted summary     | Required                                      |
+| Audio transcription     | Requires a configured speech-to-text provider |
+| Synthetic patient queue | Not required                                  |
+| PDF report generation   | Not required                                  |
+
+## Testing
+
+Run the automated backend tests with:
+
+```bat
+python -m pytest -q
+```
+
+Build the frontend with:
+
+```bat
+cd frontend
+npm install
+npm run build
+```
+
+Only report test results that have actually been run in the current project environment.
+
+## Documentation
+
+Additional documentation is available in `docs/`:
+
+* `ARCHITECTURE.md`
+* `API_GUIDE.md`
+* `AI_PIPELINE.md`
+* `TESTING.md`
+* `DEMO_SCRIPT.md`
+* `SAFETY_AND_LIMITATIONS.md`
+* `SUBMISSION_CHECKLIST.md`
+
+## Limitations
+
+This prototype has not been clinically validated. Rules-based urgency categories and AI-generated summaries may be incomplete or incorrect. The output is intended to demonstrate a technical workflow, not to direct treatment decisions. Healthcare professionals must independently assess patients and use appropriate emergency services when needed.
